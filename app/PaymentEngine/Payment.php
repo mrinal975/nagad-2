@@ -12,7 +12,7 @@ class Payment extends BaseApi
 
     private function initPayment($invoice, $account = null)
     {
-        $baseUrl = $this->baseUrl . "check-out/initialize/" . config("nagad.merchant_id$account") . "/{$invoice}" . "?purpose=ECOM_TXN";
+        $baseUrl = $this->baseUrl . "check-out/initialize/" . config("nagad.merchant_id$account") . "/{$invoice}" . "?purpose=DIRECT_DEBIT_TOKEN_GEN";
         $sensitiveData = $this->getSensitiveData($invoice, $account);
         $body = [
             "accountNumber" => config("nagad.merchant_number$account"),
@@ -20,7 +20,6 @@ class Payment extends BaseApi
             "sensitiveData" => $this->encryptWithPublicKey(json_encode($sensitiveData), $account),
             'signature' => $this->signatureGenerate(json_encode($sensitiveData), $account),
         ];
-
         $response = Http::withHeaders($this->headers())->post($baseUrl, $body);
         $response = json_decode($response->body());
         if (isset($response->reason)) {
@@ -39,14 +38,15 @@ class Payment extends BaseApi
             $account = "_$account";
         $initialize = $this->initPayment($invoice, $account);
         if ($initialize->sensitiveData && $initialize->signature) {
-            $decryptData = json_decode($this->decryptDataPrivateKey($initialize->sensitiveData, $account));
-            $url = $this->baseUrl . "/check-out/complete/" . $decryptData->paymentReferenceId;
+            $decryptSensitiveData = json_decode($this->decryptDataPrivateKey($initialize->sensitiveData, $account));
+            $url = $this->baseUrl . "/check-out/complete/" . $decryptSensitiveData->paymentReferenceId;
             $sensitiveOrderData = [
                 'merchantId' => config("nagad.merchant_id$account"),
                 'orderId' => $invoice,
                 'currencyCode' => '050',
                 'amount' => $amount,
-                'challenge' => $decryptData->challenge
+                "customerId" => "customer_001",
+                'challenge' => $decryptSensitiveData->challenge
             ];
 
             $response = Http::withHeaders($this->headers())

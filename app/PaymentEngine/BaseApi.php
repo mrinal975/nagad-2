@@ -25,6 +25,9 @@ class BaseApi
     private function baseUrl()
     {
         $this->baseUrl = 'http://sandbox.mynagad.com:10080/remote-payment-gateway-1.0/api/dfs/';
+        if (env('APP_ENV') == 'production') {
+            $this->baseUrl = 'https://api.mynagad.com/api/dfs/';
+        }
     }
 
     /**
@@ -37,7 +40,7 @@ class BaseApi
         return [
             "Content-Type" => "application/json",
             "X-KM-IP-V4" => $this->getIp(),
-            "X-KM-Api-Version" => "v-0.2.0",
+            "X-KM-Api-Version" => "v-4.0.1",
             "X-KM-Client-Type" => "PC_WEB"
         ];
     }
